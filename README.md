@@ -8,6 +8,8 @@
 
 ![AI 视频智能体工作台](docs/workbench-desktop.png)
 
+[打开在线工作台界面](https://yanruwill-dot.github.io/yanru-ai-video-agent/) · 生成任务仍连接你自己启动的本地或 HTTPS 引擎，公开页面不托管私人声音和笔记。
+
 ## 能跑通什么
 
 - 上传 MP4、MOV、M4V、MKV、AVI 或 WebM 素材。

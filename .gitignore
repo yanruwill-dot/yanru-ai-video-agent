@@ -7,3 +7,5 @@ __pycache__/
 .env
 .DS_Store
 dist/
+qa/system-smoke-*/
+qa/system-smoke-source.mp4

@@ -1,0 +1,169 @@
+<view class="page">
+  <view class="nav safe-top">
+    <view class="brand">
+      <view class="mark">追</view>
+      <view>
+        <text class="brand-title">视频智能体</text>
+        <text class="brand-sub">AI VIDEO STUDIO</text>
+      </view>
+    </view>
+    <button class="nav-button" bindtap="openConnection">连接引擎</button>
+  </view>
+
+  <view class="content">
+    <view class="status {{connected ? 'ok' : 'error'}}">
+      <view class="status-dot"></view>
+      <view class="status-copy">
+        <text>{{connectionLabel}}</text>
+        <text class="status-detail">{{connectionDetail}}</text>
+      </view>
+    </view>
+
+    <view class="hero">
+      <text class="eyebrow">MOBILE CREATION FLOW</text>
+      <text class="hero-title">从素材到成片，一部手机完成</text>
+      <text class="hero-copy">上传参考视频、克隆本人声音、选择剪辑模板，生成 9:16 短视频。</text>
+    </view>
+
+    <view class="card" id="source">
+      <view class="card-head">
+        <text class="step">01</text>
+        <view><text class="card-title">素材与参考视频</text><text class="card-sub">相册选择后上传到你的生成引擎</text></view>
+      </view>
+      <button class="upload" bindtap="chooseVideo">
+        <text class="upload-plus">＋</text>
+        <text class="upload-title">{{sourceLabel}}</text>
+        <text class="upload-sub">{{sourceMeta}}</text>
+      </button>
+      <video wx:if="{{sourcePreview}}" class="preview" src="{{sourcePreview}}" controls object-fit="contain"></video>
+      <button class="secondary" loading="{{busyAction === 'analyze'}}" disabled="{{!sourcePath || busy}}" bindtap="analyze">AI 拆解与转写</button>
+    </view>
+
+    <view class="card">
+      <view class="card-head">
+        <text class="step">02</text>
+        <view><text class="card-title">高级剪辑模板</text><text class="card-sub">左右滑动选择，镜头动效自动匹配</text></view>
+      </view>
+      <scroll-view class="template-scroll" scroll-x enhanced show-scrollbar="{{false}}">
+        <view class="template-row">
+          <view
+            wx:for="{{templates}}"
+            wx:key="value"
+            class="template {{editingStyle === item.value ? 'active' : ''}}"
+            data-value="{{item.value}}"
+            bindtap="selectTemplate"
+          >
+            <text class="template-kind">{{item.kind}}</text>
+            <text class="template-name">{{item.name}}</text>
+            <text class="template-desc">{{item.desc}}</text>
+          </view>
+        </view>
+      </scroll-view>
+    </view>
+
+    <view class="card" id="script">
+      <view class="card-head">
+        <text class="step">03</text>
+        <view><text class="card-title">原创脚本与口播</text><text class="card-sub">保留观点，不搬运参考文案</text></view>
+      </view>
+      <text class="label">视频标题</text>
+      <input class="input" value="{{title}}" data-field="title" bindinput="inputField" placeholder="输入视频标题"></input>
+      <text class="label">口播文案</text>
+      <textarea class="textarea" value="{{script}}" data-field="script" bindinput="inputField" maxlength="-1" auto-height="{{false}}" placeholder="输入口播文案"></textarea>
+      <view class="meta-row">
+        <text>{{charCount}} 字</text>
+        <button class="text-button" disabled="{{!transcript}}" bindtap="useTranscript">使用转写草稿</button>
+      </view>
+      <text class="label">内容大脑</text>
+      <view class="knowledge-row">
+        <input class="input" value="{{knowledgeQuery}}" data-field="knowledgeQuery" bindinput="inputField" placeholder="检索得到大脑与 Obsidian"></input>
+        <button class="secondary knowledge-button" loading="{{busyAction === 'knowledge'}}" disabled="{{busy}}" bindtap="searchKnowledge">检索依据</button>
+      </view>
+      <text wx:if="{{knowledgeResult}}" class="knowledge-result">{{knowledgeResult}}</text>
+    </view>
+
+    <view class="card" id="voice">
+      <view class="card-head">
+        <text class="step">04</text>
+        <view><text class="card-title">AI 配音与声音克隆</text><text class="card-sub">使用 Fish Speech 或公共神经音色</text></view>
+      </view>
+      <text class="label">声音</text>
+      <picker mode="selector" range="{{voiceNames}}" value="{{voiceIndex}}" bindchange="changeVoice">
+        <view class="picker">{{voiceNames[voiceIndex] || '正在读取声音库'}}<text>⌄</text></view>
+      </picker>
+      <button class="voice-upload" bindtap="chooseVoiceSample">
+        <text class="upload-title">{{voiceSampleLabel}}</text>
+        <text class="upload-sub">MP3 / M4A / WAV · 10 秒～5 分钟</text>
+      </button>
+      <text class="label">音色名称</text>
+      <input class="input" value="{{voiceName}}" data-field="voiceName" bindinput="inputField"></input>
+      <text class="label">样本逐字稿</text>
+      <textarea class="textarea voice-text" value="{{voiceReferenceText}}" data-field="voiceReferenceText" bindinput="inputField" maxlength="-1" placeholder="准确填写上传声音对应的文字"></textarea>
+      <label class="consent">
+        <checkbox checked="{{voiceConsent}}" bindtap="toggleConsent" color="#0A84FF"></checkbox>
+        <text>我确认这是本人声音，或已经获得声音所有者授权</text>
+      </label>
+      <button class="secondary" loading="{{busyAction === 'clone'}}" disabled="{{!voiceSamplePath || !voiceConsent || busy}}" bindtap="cloneVoice">建立 Fish Speech 声音档案</button>
+    </view>
+
+    <view class="card" id="generate">
+      <view class="card-head">
+        <text class="step">05</text>
+        <view><text class="card-title">生成设置</text><text class="card-sub">9:16 成片、字幕与音量标准化</text></view>
+      </view>
+      <view class="setting-row">
+        <view><text class="setting-title">自动剪辑静音</text><text class="setting-sub">保留自然呼吸边缘</text></view>
+        <switch checked="{{autoCut}}" bindchange="toggleAutoCut" color="#30D158"></switch>
+      </view>
+      <view class="two-cols">
+        <view><text class="label">静音阈值</text><input class="input" type="number" value="{{threshold}}" data-field="threshold" bindinput="inputField"></input></view>
+        <view><text class="label">最短静音/秒</text><input class="input" type="digit" value="{{silence}}" data-field="silence" bindinput="inputField"></input></view>
+      </view>
+      <button class="generate" loading="{{busyAction === 'generate'}}" disabled="{{!sourcePath || !title || !script || busy}}" bindtap="generate">
+        <text class="generate-dot"></text>一键生成完整视频
+      </button>
+      <view class="progress">
+        <view class="progress-bar"><view style="width: {{progress}}%"></view></view>
+        <view class="progress-copy"><text>{{jobMessage}}</text><text>{{progress}}%</text></view>
+      </view>
+    </view>
+
+    <view class="card" id="result">
+      <view class="card-head">
+        <text class="step">06</text>
+        <view><text class="card-title">成片与交付</text><text class="card-sub">完成后可预览并保存到手机</text></view>
+      </view>
+      <view wx:if="{{!resultVideo}}" class="empty-result">
+        <text class="empty-ai">AI</text>
+        <text>等待生成成片</text>
+      </view>
+      <video wx:if="{{resultVideo}}" class="result-video" src="{{resultVideo}}" poster="{{coverUrl}}" controls object-fit="contain"></video>
+      <image wx:if="{{coverUrl}}" class="cover" src="{{coverUrl}}" mode="aspectFit"></image>
+      <view class="result-actions">
+        <button class="primary" disabled="{{!resultVideo}}" bindtap="saveVideo">保存视频</button>
+        <button class="secondary half" disabled="{{!srtUrl}}" bindtap="copySrtLink">复制字幕链接</button>
+      </view>
+    </view>
+  </view>
+
+  <view class="bottom-action">
+    <button class="primary" disabled="{{!sourcePath || busy}}" bindtap="generate">一键生成成片</button>
+    <text>{{progress ? progress + '%' : '9:16'}}</text>
+  </view>
+  <view class="safe-bottom"></view>
+
+  <view wx:if="{{showConnection}}" class="modal">
+    <view class="modal-mask" bindtap="closeConnection"></view>
+    <view class="sheet">
+      <view class="sheet-handle"></view>
+      <text class="sheet-title">连接 HTTPS 生成引擎</text>
+      <text class="sheet-copy">小程序不能使用电脑上的 127.0.0.1。请填写已部署并加入微信后台域名白名单的 HTTPS 地址。</text>
+      <text class="label">HTTPS 引擎地址</text>
+      <input class="input" value="{{apiInput}}" data-field="apiInput" bindinput="inputField" placeholder="https://video-api.example.com"></input>
+      <text class="label">访问密钥</text>
+      <input class="input" password value="{{keyInput}}" data-field="keyInput" bindinput="inputField" placeholder="由云端启动器生成"></input>
+      <text class="sheet-error">{{connectionError}}</text>
+      <button class="primary sheet-save" loading="{{connecting}}" bindtap="saveConnection">保存并连接</button>
+    </view>
+  </view>
+</view>

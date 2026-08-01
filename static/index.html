@@ -1,0 +1,266 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <title>AI 视频智能体 · 开源工作台</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='12' fill='%2330f0dc'/%3E%3Ctext x='32' y='44' font-size='38' text-anchor='middle' fill='%2307080c'%3E%E8%BF%BD%3C/text%3E%3C/svg%3E">
+  <link rel="stylesheet" href="./styles.css?v=2.0.0">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-mark">追</div>
+      <div>
+        <strong>AI 视频智能体</strong>
+        <span>OPEN VIDEO STUDIO</span>
+      </div>
+    </div>
+    <div class="topbar-actions">
+      <div class="health" id="health"><i></i>正在连接生成引擎</div>
+      <a class="ghost compact github-link" href="https://github.com/yanruwill-dot/yanru-ai-video-agent" target="_blank" rel="noreferrer">GitHub</a>
+      <button class="ghost compact" id="connectionBtn">连接引擎</button>
+      <button class="ghost desktop-only" id="openRuns">打开产物目录</button>
+    </div>
+  </header>
+
+  <nav class="mobile-dock" aria-label="工作台步骤">
+    <a class="active" href="#sourceStep"><b>01</b><span>素材</span></a>
+    <a href="#scriptStep"><b>03</b><span>脚本</span></a>
+    <a href="#voiceStep"><b>05</b><span>配音</span></a>
+    <a href="#resultStep"><b>07</b><span>成片</span></a>
+  </nav>
+
+  <main class="workspace">
+    <section class="column">
+      <article class="panel source-panel" id="sourceStep">
+        <div class="panel-head">
+          <span class="step">01</span>
+          <div><h2>素材与参考视频</h2><p>上传或粘贴本机绝对路径</p></div>
+        </div>
+        <label class="dropzone" for="videoFile">
+          <input id="videoFile" type="file" accept="video/*">
+          <span class="drop-icon">＋</span>
+          <strong>选择视频素材</strong>
+          <small id="uploadState">MP4 / MOV / M4V / MKV</small>
+        </label>
+        <label class="field">
+          <span>素材路径</span>
+          <input id="sourcePath" placeholder="/path/to/your/reference.mp4">
+        </label>
+        <video id="sourcePreview" controls playsinline></video>
+        <div class="row">
+          <button class="primary" id="analyzeBtn">AI 拆解与转写</button>
+          <span class="badge">Whisper tiny</span>
+        </div>
+      </article>
+
+      <article class="panel" id="editStep">
+        <div class="panel-head">
+          <span class="step">02</span>
+          <div><h2>自动剪辑</h2><p>识别静音并保留自然呼吸</p></div>
+        </div>
+        <div class="split">
+          <label class="field"><span>静音阈值</span><input id="threshold" type="number" value="-35"><em>dB</em></label>
+          <label class="field"><span>最短静音</span><input id="silence" type="number" step="0.05" value="0.65"><em>秒</em></label>
+        </div>
+        <div class="switch-row">
+          <label class="switch"><input id="autoCut" type="checkbox" checked><span></span>生成视频前自动剪辑</label>
+        </div>
+        <button class="outline" id="cutBtn">只运行自动剪辑</button>
+        <video id="cutPreview" controls playsinline></video>
+        <div class="subsection">
+          <div class="subhead"><strong>高级剪辑模板</strong><span>镜头动效已自动匹配</span></div>
+          <div class="template-library" id="editStyleGrid">
+            <label class="template-card">
+              <input type="radio" name="editStyle" value="classic">
+              <span class="template-kind">基础</span><b>清晰口播</b><small>克制底栏 · 正式讲解</small>
+            </label>
+            <label class="template-card active">
+              <input type="radio" name="editStyle" value="jianying_big" checked>
+              <span class="template-kind">剪映经典</span><b>大字弹跳</b><small>重点黄字 · 弹性入场</small>
+            </label>
+            <label class="template-card">
+              <input type="radio" name="editStyle" value="jianying_clean">
+              <span class="template-kind">剪映经典</span><b>清透标题</b><small>玻璃字幕 · 轻推镜头</small>
+            </label>
+            <label class="template-card">
+              <input type="radio" name="editStyle" value="keyword_punch">
+              <span class="template-kind">剪映经典</span><b>卡点快切</b><small>冲击字幕 · 节奏变焦</small>
+            </label>
+            <label class="template-card">
+              <input type="radio" name="editStyle" value="kaipai_talk">
+              <span class="template-kind">开拍口播</span><b>口播重点</b><small>短句色块 · 智能轻推</small>
+            </label>
+            <label class="template-card">
+              <input type="radio" name="editStyle" value="kaipai_boss">
+              <span class="template-kind">开拍口播</span><b>老板观点</b><small>观点大字 · 稳定聚焦</small>
+            </label>
+            <label class="template-card">
+              <input type="radio" name="editStyle" value="kaipai_story">
+              <span class="template-kind">开拍口播</span><b>故事叙述</b><small>电影字幕 · 呼吸推镜</small>
+            </label>
+            <label class="template-card">
+              <input type="radio" name="editStyle" value="knowledge_highlight">
+              <span class="template-kind">知识表达</span><b>关键词高亮</b><small>高信息密度 · 自动强调</small>
+            </label>
+          </div>
+        </div>
+      </article>
+    </section>
+
+    <section class="column center-column">
+      <article class="panel" id="scriptStep">
+        <div class="panel-head">
+          <span class="step">03</span>
+          <div><h2>原创脚本与口播</h2><p>结果先行，不搬运原作者文案</p></div>
+        </div>
+        <label class="field">
+          <span>视频标题</span>
+          <input id="title" value="我把内容大脑接进了视频智能体">
+        </label>
+        <label class="field">
+          <span>口播文案</span>
+          <textarea id="script" rows="10">我把内容大脑接进了视频智能体。素材上传后，系统先检索得到大脑和 Obsidian，再把可追溯的依据放进脚本。确认内容后，Fish Speech 生成授权声音，FFmpeg 自动完成字幕、动效、封面和竖屏成片。</textarea>
+        </label>
+        <div class="script-meta">
+          <span id="charCount">0 字</span>
+          <button class="text-btn" id="useTranscript">使用转写草稿</button>
+        </div>
+        <div class="knowledge-lab">
+          <div class="subhead"><strong>内容大脑</strong><span id="knowledgeState">得到大脑 + Obsidian</span></div>
+          <div class="knowledge-search">
+            <input id="knowledgeQuery" value="视频智能体 自动剪辑" placeholder="输入要检索的主题">
+            <button class="mini-primary" id="knowledgeBtn">检索依据</button>
+          </div>
+          <div class="switch-row compact-row">
+            <label class="switch"><input id="includeGetnote" type="checkbox" checked><span></span>得到大脑</label>
+            <label class="switch"><input id="includeObsidian" type="checkbox" checked><span></span>Obsidian</label>
+          </div>
+          <div class="knowledge-results" id="knowledgeResults">检索结果只进入当前浏览器和本地任务，不写入仓库。</div>
+        </div>
+      </article>
+
+      <article class="panel" id="metadataStep">
+        <div class="panel-head">
+          <span class="step">04</span>
+          <div><h2>标题标签与关键词</h2><p>输出平台可编辑元数据</p></div>
+        </div>
+        <button class="mini-primary" id="tagBtn">生成标题标签关键词</button>
+        <label class="field"><span>生成的标签</span><textarea id="tags" rows="3">AI落地, 企业智能体, 老板思维, 业务流程, 内容获客</textarea></label>
+        <div class="chips" id="keywords">
+          <span>企业AI</span><span>流程重构</span><span>智能体</span><span>增长</span>
+        </div>
+      </article>
+
+      <article class="panel" id="voiceStep">
+        <div class="panel-head">
+          <span class="step">05</span>
+          <div><h2>AI 配音、声音克隆与字幕</h2><p>可上传本人声音，克隆后直接用于成片</p></div>
+        </div>
+        <div class="split">
+          <label class="field">
+            <span>声音</span>
+            <select id="voice">
+              <option value="" disabled>正在读取声音库…</option>
+              <option value="zh-CN-YunxiNeural">云希 · 沉稳男声</option>
+              <option value="zh-CN-XiaoxiaoNeural">晓晓 · 自然女声</option>
+              <option value="zh-CN-YunjianNeural">云健 · 专业男声</option>
+            </select>
+          </label>
+          <label class="field"><span>画幅</span><select><option>9:16 · 1080×1920</option></select></label>
+        </div>
+        <div class="switch-row">
+          <label class="switch"><input type="checkbox" checked disabled><span></span>自动生成字幕</label>
+          <label class="switch"><input type="checkbox" checked disabled><span></span>音量标准化</label>
+        </div>
+        <div class="voice-lab">
+          <div class="subhead"><strong>克隆我的声音</strong><span id="cloneEngine">正在检查引擎</span></div>
+          <label class="voice-drop" for="voiceFile">
+            <input id="voiceFile" type="file" accept="audio/mp3,audio/mp4,audio/wav,.mp3,.m4a,.wav">
+            <b>上传 10 秒～5 分钟清晰人声</b>
+            <small id="voiceUploadState">MP3 / M4A / WAV · 不超过 20 MB</small>
+          </label>
+          <label class="field"><span>音色名称</span><input id="voiceName" value="我的专属音色"></label>
+          <label class="field"><span>样本逐字稿</span><textarea id="voiceReferenceText" rows="3" placeholder="准确填写上传声音对应的文字，Fish Speech 用它保留音色和语气。"></textarea></label>
+          <label class="consent"><input id="voiceConsent" type="checkbox"> 我确认这是本人声音，或已经获得声音所有者授权</label>
+          <button class="outline clone-button" id="cloneBtn" disabled>建立 Fish Speech 声音档案</button>
+          <audio id="voicePreview" controls></audio>
+          <p class="cost-note">声音样本、逐字稿和参考特征只保存在你的本地引擎；请只使用本人或已获授权的声音。</p>
+        </div>
+        <div class="engine-note"><b>真实引擎</b> Fish Speech · Whisper · FFmpeg · Pillow</div>
+      </article>
+    </section>
+
+    <section class="column">
+      <article class="panel launch-panel" id="launchStep">
+        <div class="panel-head">
+          <span class="step">READY</span>
+          <div><h2>一键生成控制台</h2><p>每次任务都有真实目录和日志</p></div>
+        </div>
+        <button class="launch" id="generateBtn"><i></i>一键生成完整视频</button>
+        <div class="progress-shell">
+          <div class="progress"><b id="progressBar"></b></div>
+          <div class="progress-copy"><span id="jobState">等待任务</span><strong id="progressText">0%</strong></div>
+        </div>
+        <pre class="log" id="log">工作台界面已加载。
+正在连接生成引擎，请以顶部连接状态为准。</pre>
+      </article>
+
+      <article class="panel" id="coverStep">
+        <div class="panel-head">
+          <span class="step">06</span>
+          <div><h2>封面制作</h2><p>从成片自动抽帧并生成标题封面</p></div>
+        </div>
+        <div class="cover-stage">
+          <img id="coverPreview" alt="等待生成封面">
+          <div class="empty-cover" id="coverEmpty"><span>AI</span><b>等待成片</b></div>
+        </div>
+      </article>
+
+      <article class="panel result-panel" id="resultStep">
+        <div class="panel-head">
+          <span class="step">07</span>
+          <div><h2>成片与交付</h2><p>先验收，再生成发布包</p></div>
+        </div>
+        <video id="finalPreview" controls playsinline></video>
+        <div class="result-actions">
+          <a class="primary disabled" id="downloadVideo" download>下载 MP4</a>
+          <a class="outline disabled" id="downloadSrt" download>下载字幕</a>
+        </div>
+        <div class="facts" id="facts">
+          <span><b>—</b>时长</span><span><b>1080×1920</b>画幅</span><span><b>本地</b>隐私</span>
+        </div>
+      </article>
+    </section>
+  </main>
+
+  <div class="mobile-generate">
+    <button class="launch" id="mobileGenerateBtn"><i></i>一键生成完整视频</button>
+    <span id="mobileProgress">等待任务</span>
+  </div>
+
+  <section class="connection-sheet" id="connectionSheet" aria-hidden="true">
+    <button class="sheet-backdrop" id="closeConnection" aria-label="关闭连接设置"></button>
+    <div class="sheet-card" role="dialog" aria-modal="true" aria-labelledby="connectionTitle">
+      <div class="sheet-handle"></div>
+      <div class="panel-head">
+        <span class="step">API</span>
+        <div><h2 id="connectionTitle">连接 HTTPS 生成引擎</h2><p>手机与小程序不能连接电脑上的 127.0.0.1</p></div>
+      </div>
+      <label class="field">
+        <span>HTTPS 引擎地址</span>
+        <input id="apiOriginInput" inputmode="url" placeholder="https://video-api.example.com">
+      </label>
+      <label class="field">
+        <span>访问密钥</span>
+        <input id="apiKeyInput" type="password" autocomplete="off" placeholder="由云端或桌面启动器生成">
+      </label>
+      <p class="sheet-note" id="connectionState">地址和密钥只保存在当前设备。</p>
+      <button class="primary sheet-save" id="saveConnection">保存并连接</button>
+    </div>
+  </section>
+
+  <script src="./app.js?v=2.0.0"></script>
+</body>
+</html>

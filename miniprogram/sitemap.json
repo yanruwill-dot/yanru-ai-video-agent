@@ -1,0 +1,9 @@
+{
+  "desc": "开源 AI 视频智能体工作台",
+  "rules": [
+    {
+      "action": "allow",
+      "page": "pages/studio/index"
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+{
+  "appid": "touristappid",
+  "projectname": "yanru-video-agent-miniapp",
+  "description": "开源 AI 视频智能体移动端",
+  "compileType": "miniprogram",
+  "miniprogramRoot": "./",
+  "setting": {
+    "urlCheck": false,
+    "es6": true,
+    "enhance": true,
+    "postcss": true,
+    "minified": true,
+    "coverView": true,
+    "showShadowRootInWxmlPanel": true,
+    "packNpmManually": false
+  },
+  "condition": {}
+}

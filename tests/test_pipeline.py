@@ -16,10 +16,21 @@ from pipeline import (
     timeline_for,
     write_srt,
 )
-from voice_clone import VoiceCloneError, audio_probe, fish_config, voice_id_for
+from voice_clone import (
+    FISH_CHUNK_LENGTH,
+    FISH_MAX_NEW_TOKENS,
+    VoiceCloneError,
+    audio_probe,
+    fish_config,
+    voice_id_for,
+)
 
 
 class PipelineUnitTests(unittest.TestCase):
+    def test_fish_generation_has_bounded_segment_budget(self):
+        self.assertEqual(FISH_CHUNK_LENGTH, 100)
+        self.assertEqual(FISH_MAX_NEW_TOKENS, 1024)
+
     def test_audio_is_normalized_for_social_video(self):
         self.assertIn("I=-16", AUDIO_NORMALIZATION)
         self.assertIn("TP=-1.5", AUDIO_NORMALIZATION)

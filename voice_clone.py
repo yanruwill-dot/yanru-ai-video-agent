@@ -14,6 +14,8 @@ from runtime_config import load_settings
 
 
 AUDIO_SUFFIXES = {".mp3", ".m4a", ".wav"}
+FISH_MAX_NEW_TOKENS = 1024
+FISH_CHUNK_LENGTH = 100
 
 
 class VoiceCloneError(RuntimeError):
@@ -234,13 +236,15 @@ def synthesize_fish(text: str, voice_id: str, output: Path, voices_dir: Path | N
                 "--prompt-tokens", str(prompt_tokens),
                 "--checkpoint-path", str(config["checkpoint"]),
                 "--num-samples", "1",
-                "--max-new-tokens", "8192",
+                # Fish 1.5 normally stops on its end token. A bounded ceiling keeps
+                # a malformed/non-ending segment from running for hours on MPS.
+                "--max-new-tokens", str(FISH_MAX_NEW_TOKENS),
                 "--top-p", "0.7",
                 "--repetition-penalty", "1.5",
                 "--temperature", "0.7",
                 "--seed", "42",
                 *_device_args(str(config["device"])),
-                "--iterative-prompt", "--chunk-length", "200",
+                "--iterative-prompt", "--chunk-length", str(FISH_CHUNK_LENGTH),
                 "--output-dir", str(semantic_dir),
             ],
             env=_fish_env(Path(config["root"])),

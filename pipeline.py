@@ -208,6 +208,7 @@ EDIT_STYLES = {
 }
 
 AUDIO_NORMALIZATION = "loudnorm=I=-16:TP=-1.5:LRA=11"
+OUTPUT_AUDIO_RATE = "48000"
 
 
 def motion_filter(preset: str) -> str:
@@ -571,7 +572,7 @@ def render_video(
     command += [
         "-filter_complex", ";".join(filters), "-map", f"[{previous}]", "-map", f"{audio_index}:a:0",
         "-t", f"{voice_duration:.3f}", "-r", "30", "-c:v", "libx264", "-preset", "veryfast",
-        "-af", AUDIO_NORMALIZATION, "-c:a", "aac", "-b:a", "192k",
+        "-af", AUDIO_NORMALIZATION, "-c:a", "aac", "-b:a", "192k", "-ar", OUTPUT_AUDIO_RATE,
         "-pix_fmt", "yuv420p", "-movflags", "+faststart", str(final)
     ]
     run(command, log)

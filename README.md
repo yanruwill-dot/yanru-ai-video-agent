@@ -69,7 +69,19 @@ getnote search "你的主题" --limit 5 -o json
 
 ## 配置 Fish Speech
 
-Fish Speech、模型权重和个人声音样本体积较大，也受各自许可证与授权范围约束，因此不打包进本仓库。先按 [Fish Speech 官方仓库](https://github.com/fishaudio/fish-speech) 安装，再配置：
+Fish Speech、模型权重和个人声音样本体积较大，也受各自许可证与授权范围约束，因此不打包进本仓库。
+
+Apple Silicon 推荐使用 MLX 后端。它保持 Fish S2 Pro 的参考音色能力，同时绕开 PyTorch MPS 逐 token 解码过慢的问题。本项目实测并锁定社区实现 [`gafiatulin/fish-speech-mlx@b0c8e53`](https://github.com/gafiatulin/fish-speech-mlx/tree/b0c8e534960b18cd40688a85f852a6cb56af066d)：
+
+```env
+FISH_SPEECH_BACKEND=mlx
+FISH_SPEECH_MLX_ROOT=/absolute/path/to/fish-speech-mlx
+FISH_SPEECH_MLX_CLI=/absolute/path/to/fish-speech-mlx/.venv/bin/fish-speech-mlx
+FISH_SPEECH_MLX_MODEL=mlx-community/fish-audio-s2-pro-bf16
+FISH_SPEECH_MLX_QUANTIZE=int4
+```
+
+MLX 模型首次使用会从 Hugging Face 下载；声音参考和生成结果仍保存在本机。其他平台或已安装 Fish Speech 1.5 的环境可使用 PyTorch 路线：
 
 ```env
 FISH_SPEECH_ROOT=/absolute/path/to/fish-speech
@@ -80,7 +92,7 @@ FISH_SPEECH_DEVICE=mps
 
 工作台的“克隆”是本地参考音色流程：上传 10 秒到 5 分钟清晰声音、填写准确逐字稿、编码成 Fish Speech 参考特征。它不会训练或上传一个云端模型。请只处理本人声音或已获得明确授权的声音。
 
-许可证请按你实际安装的代码和权重版本逐项核验：当前 Fish Speech 上游采用 Fish Audio Research License，商业使用需另行授权；本项目实测的 1.5 代码提交 `58046ea` 为 Apache-2.0，但 1.5 权重模型卡标注 CC BY-NC-SA 4.0，仅限非商业用途。本仓库的 MIT License 不覆盖这些第三方组件。
+许可证请按你实际安装的代码和权重版本逐项核验：当前 Fish Speech S2 Pro 权重采用 Fish Audio Research License，商业使用需另行授权；本项目实测的 1.5 代码提交 `58046ea` 为 Apache-2.0，但 1.5 权重模型卡标注 CC BY-NC-SA 4.0，仅限非商业用途。MLX 推理端代码的 MIT License 也不覆盖模型权重。本仓库的 MIT License 不覆盖这些第三方组件。
 
 Fish Speech 未配置时，公共 Edge Neural TTS 仍可用于基础成片；自定义声音功能会明确显示未配置。
 

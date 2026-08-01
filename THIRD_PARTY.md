@@ -5,6 +5,7 @@
 | 组件 | 用途 | 上游与许可证 |
 | --- | --- | --- |
 | Fish Speech | 本地参考音色与连续配音 | [fishaudio/fish-speech](https://github.com/fishaudio/fish-speech)；许可证随版本变化。当前上游采用 Fish Audio Research License，商业使用需另行获得书面许可。经本项目实测的 1.5 代码提交 `58046ea` 为 Apache-2.0，1.5 模型卡标注 CC BY-NC-SA 4.0，仅限非商业用途 |
+| Fish Speech MLX | Apple Silicon 加速推理 | 社区实现 [`gafiatulin/fish-speech-mlx@b0c8e53`](https://github.com/gafiatulin/fish-speech-mlx/tree/b0c8e534960b18cd40688a85f852a6cb56af066d) 为 MIT；Fish S2 Pro 权重仍采用 Fish Audio Research License，商业使用需另行授权 |
 | FFmpeg | 探测、剪辑、混音和编码 | [ffmpeg.org](https://ffmpeg.org/)，LGPL/GPL 取决于本地构建选项 |
 | edge-tts | 未配置 Fish Speech 时的基础公共音色 | [rany2/edge-tts](https://github.com/rany2/edge-tts)，LGPL-3.0 |
 | Pillow | 封面与字幕画面处理 | [python-pillow/Pillow](https://github.com/python-pillow/Pillow)，HPND |

@@ -24,6 +24,27 @@ class VoiceCloneError(RuntimeError):
 
 def fish_config() -> dict[str, object]:
     settings = load_settings()
+    requested_backend = settings.get("FISH_SPEECH_BACKEND", "auto").strip().lower()
+    if requested_backend not in {"auto", "mlx", "pytorch"}:
+        requested_backend = "auto"
+
+    mlx_root_value = settings.get("FISH_SPEECH_MLX_ROOT", "").strip()
+    mlx_root = (
+        Path(mlx_root_value).expanduser().resolve()
+        if mlx_root_value
+        else Path.home() / "fish-speech-mlx"
+    )
+    mlx_cli_value = settings.get("FISH_SPEECH_MLX_CLI", "").strip()
+    mlx_cli = Path(mlx_cli_value).expanduser() if mlx_cli_value else mlx_root / ".venv/bin/fish-speech-mlx"
+    mlx_model = settings.get(
+        "FISH_SPEECH_MLX_MODEL", "mlx-community/fish-audio-s2-pro-bf16"
+    ).strip()
+    mlx_hf_home = settings.get("FISH_SPEECH_MLX_HF_HOME", "").strip()
+    mlx_quantize = settings.get("FISH_SPEECH_MLX_QUANTIZE", "int4").strip().lower()
+    if mlx_quantize not in {"int4", "int8", "none"}:
+        mlx_quantize = "int4"
+    mlx_configured = mlx_cli.is_file() and bool(mlx_model)
+
     root_value = settings.get("FISH_SPEECH_ROOT", "").strip()
     root = Path(root_value).expanduser().resolve() if root_value else Path.home() / "fish-speech"
     python_value = settings.get("FISH_SPEECH_PYTHON", "").strip()
@@ -40,8 +61,11 @@ def fish_config() -> dict[str, object]:
     generator = checkpoint / "firefly-gan-vq-fsq-8x1024-21hz-generator.pth"
     text_inference = root / "fish_speech/models/text2semantic/inference.py"
     vq_inference = root / "fish_speech/models/vqgan/inference.py"
-    configured = all(path.exists() for path in (python, checkpoint, generator, text_inference, vq_inference))
-    return {
+    pytorch_configured = all(
+        path.exists() for path in (python, checkpoint, generator, text_inference, vq_inference)
+    )
+    pytorch = {
+        "backend": "pytorch",
         "root": root,
         "python": python,
         "checkpoint": checkpoint,
@@ -49,14 +73,30 @@ def fish_config() -> dict[str, object]:
         "text_inference": text_inference,
         "vq_inference": vq_inference,
         "device": device,
-        "configured": configured,
+        "configured": pytorch_configured,
     }
+    mlx = {
+        "backend": "mlx",
+        "root": mlx_root,
+        "cli": mlx_cli,
+        "model": mlx_model,
+        "hf_home": mlx_hf_home,
+        "quantize": mlx_quantize,
+        "device": "Apple Silicon MLX",
+        "configured": mlx_configured,
+    }
+    if requested_backend == "mlx":
+        return mlx
+    if requested_backend == "pytorch":
+        return pytorch
+    return mlx if mlx_configured else pytorch
 
 
 def engine_status() -> dict[str, object]:
     config = fish_config()
     return {
-        "provider": "Fish Speech",
+        "provider": "Fish Speech · MLX" if config["backend"] == "mlx" else "Fish Speech",
+        "backend": config["backend"],
         "configured": bool(config["configured"]),
         "clone_enabled": bool(config["configured"]),
         "device": str(config["device"]),
@@ -156,7 +196,11 @@ def list_voice_profiles(voices_dir: Path) -> list[dict[str, object]]:
             continue
         voice_id = str(profile.get("voice_id", path.parent.name))
         profile["id"] = f"fish:{voice_id}"
-        profile["ready"] = (path.parent / str(profile.get("prompt_tokens", "prompt.npy"))).is_file()
+        reference_ready = (path.parent / str(profile.get("reference_audio", "reference.wav"))).is_file()
+        prompt_ready = (path.parent / str(profile.get("prompt_tokens", "prompt.npy"))).is_file()
+        profile["ready"] = reference_ready and (
+            profile.get("backend") == "mlx" or prompt_ready
+        )
         profiles.append(profile)
     return profiles
 
@@ -170,7 +214,8 @@ def clone_voice(
     config = fish_config()
     if not config["configured"]:
         raise VoiceCloneError(
-            "Fish Speech 未配置。请设置 FISH_SPEECH_ROOT、FISH_SPEECH_PYTHON 和 FISH_SPEECH_CHECKPOINT。"
+            "Fish Speech 未配置。Apple Silicon 可配置 FISH_SPEECH_MLX_ROOT；"
+            "PyTorch 路线请配置 FISH_SPEECH_ROOT、FISH_SPEECH_PYTHON 和 FISH_SPEECH_CHECKPOINT。"
         )
     sample_info = audio_probe(sample)
     reference_text = reference_text.strip()
@@ -182,20 +227,24 @@ def clone_voice(
     try:
         reference = profile_dir / f"reference{sample.suffix.lower()}"
         shutil.copy2(sample, reference)
-        prompt_tokens = _encode_reference(reference, profile_dir, config)
+        prompt_tokens = None
+        if config["backend"] == "pytorch":
+            prompt_tokens = _encode_reference(reference, profile_dir, config)
         preview = profile_dir / "preview.mp3"
         _make_preview(reference, preview)
         profile = {
             "voice_id": voice_id,
             "name": name.strip() or "我的克隆音色",
             "provider": "Fish Speech",
+            "backend": str(config["backend"]),
             "created_at": time.time(),
             "reference_audio": reference.name,
             "reference_text": reference_text,
-            "prompt_tokens": prompt_tokens.name,
             "sample": sample_info,
             "preview": preview.name,
         }
+        if prompt_tokens is not None:
+            profile["prompt_tokens"] = prompt_tokens.name
         (profile_dir / "profile.json").write_text(
             json.dumps(profile, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
         )
@@ -203,6 +252,57 @@ def clone_voice(
         shutil.rmtree(profile_dir, ignore_errors=True)
         raise
     return {**profile, "id": f"fish:{voice_id}", "ready": True}
+
+
+def _normalize_voice(source: Path, output: Path) -> None:
+    _run(
+        [
+            "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(source),
+            "-af",
+            "highpass=f=65,lowpass=f=11500,"
+            "acompressor=threshold=-18dB:ratio=2.2:attack=12:release=160,"
+            "loudnorm=I=-16:TP=-1.5:LRA=8,aresample=48000",
+            str(output),
+        ]
+    )
+
+
+def _synthesize_mlx(
+    text: str,
+    output: Path,
+    profile_dir: Path,
+    profile: dict[str, object],
+    config: dict[str, object],
+) -> None:
+    reference = profile_dir / str(profile.get("reference_audio", "reference.wav"))
+    reference_text = str(profile.get("reference_text", "")).strip()
+    if not reference.is_file() or not reference_text:
+        raise VoiceCloneError("Fish Speech MLX 声音档案不完整")
+    with tempfile.TemporaryDirectory(prefix="fish-mlx-", dir=output.parent) as temp_value:
+        decoded = Path(temp_value) / "decoded.wav"
+        command = [
+            str(config["cli"]),
+            "--model", str(config["model"]),
+            "--text", text,
+            "--output", str(decoded),
+            "--ref-audio", str(reference),
+            "--ref-text", reference_text,
+            "--cache-voice",
+            "--chunk-size", "160",
+            "--max-tokens", str(FISH_MAX_NEW_TOKENS),
+            "--temperature", "0.7",
+            "--top-p", "0.8",
+            "--seed", "42",
+        ]
+        if config["quantize"] != "none":
+            command.extend(["--quantize", str(config["quantize"])])
+        env = dict(os.environ)
+        if config.get("hf_home"):
+            env["HF_HOME"] = str(config["hf_home"])
+        _run(command, cwd=Path(config["root"]), env=env)
+        if not decoded.is_file():
+            raise VoiceCloneError("Fish Speech MLX 没有生成音频")
+        _normalize_voice(decoded, output)
 
 
 def synthesize_fish(text: str, voice_id: str, output: Path, voices_dir: Path | None = None) -> Path:
@@ -217,12 +317,18 @@ def synthesize_fish(text: str, voice_id: str, output: Path, voices_dir: Path | N
     if not profile_path.is_file():
         raise VoiceCloneError("找不到 Fish Speech 声音档案")
     profile = json.loads(profile_path.read_text(encoding="utf-8"))
-    prompt_tokens = profile_dir / str(profile["prompt_tokens"])
-    reference_text = str(profile["reference_text"]).strip()
+    output.parent.mkdir(parents=True, exist_ok=True)
+    if config["backend"] == "mlx":
+        _synthesize_mlx(text, output, profile_dir, profile, config)
+        if not output.is_file() or output.stat().st_size < 1024:
+            raise VoiceCloneError("Fish Speech 配音输出无效")
+        return output
+
+    prompt_tokens = profile_dir / str(profile.get("prompt_tokens", "prompt.npy"))
+    reference_text = str(profile.get("reference_text", "")).strip()
     if not prompt_tokens.is_file() or not reference_text:
         raise VoiceCloneError("Fish Speech 声音档案不完整")
 
-    output.parent.mkdir(parents=True, exist_ok=True)
     with tempfile.TemporaryDirectory(prefix="fish-speech-", dir=output.parent) as temp_value:
         temp = Path(temp_value)
         semantic_dir = temp / "semantic"
@@ -263,13 +369,7 @@ def synthesize_fish(text: str, voice_id: str, output: Path, voices_dir: Path | N
         )
         if not decoded.is_file():
             raise VoiceCloneError("Fish Speech 没有生成音频")
-        _run(
-            [
-                "ffmpeg", "-hide_banner", "-loglevel", "error", "-y", "-i", str(decoded),
-                "-af", "highpass=f=65,lowpass=f=11500,acompressor=threshold=-18dB:ratio=2.2:attack=12:release=160,loudnorm=I=-16:TP=-1.5:LRA=8,aresample=48000",
-                str(output),
-            ]
-        )
+        _normalize_voice(decoded, output)
     if not output.is_file() or output.stat().st_size < 1024:
         raise VoiceCloneError("Fish Speech 配音输出无效")
     return output

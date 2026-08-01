@@ -23,6 +23,7 @@ from voice_clone import (
     VoiceCloneError,
     audio_probe,
     fish_config,
+    list_voice_profiles,
     voice_id_for,
 )
 
@@ -131,6 +132,37 @@ class PipelineUnitTests(unittest.TestCase):
                 "FISH_SPEECH_CHECKPOINT": str(checkpoint),
             }, clear=False):
                 self.assertEqual(fish_config()["python"], link)
+
+    def test_fish_config_prefers_explicit_mlx_runtime(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            cli = root / ".venv/bin/fish-speech-mlx"
+            cli.parent.mkdir(parents=True)
+            cli.touch()
+            with patch.dict("os.environ", {
+                "FISH_SPEECH_BACKEND": "mlx",
+                "FISH_SPEECH_MLX_ROOT": str(root),
+                "FISH_SPEECH_MLX_MODEL": "local-test-model",
+            }, clear=False):
+                config = fish_config()
+            self.assertEqual(config["backend"], "mlx")
+            self.assertTrue(config["configured"])
+            self.assertEqual(config["cli"], cli.resolve())
+
+    def test_mlx_voice_profile_is_ready_without_pytorch_tokens(self):
+        with tempfile.TemporaryDirectory() as directory:
+            voices = Path(directory)
+            profile_dir = voices / "owner_voice"
+            profile_dir.mkdir()
+            (profile_dir / "reference.wav").touch()
+            (profile_dir / "profile.json").write_text(
+                '{"voice_id":"owner_voice","backend":"mlx",'
+                '"reference_audio":"reference.wav","reference_text":"授权参考逐字稿"}',
+                encoding="utf-8",
+            )
+            profiles = list_voice_profiles(voices)
+            self.assertEqual(len(profiles), 1)
+            self.assertTrue(profiles[0]["ready"])
 
 
 if __name__ == "__main__":
